@@ -7964,6 +7964,99 @@ addcmd("savegame", {"saveplace"}, function(args, speaker)
     end
 end)
 
+addcmd("savegame", {"saveplace", "downloadgame"}, function(args, speaker)
+    local fileName = args[1] or ("SavedGame_" .. os.time())
+    
+    if saveinstance then
+        notify("Loading", "Downloading game using built-in saveinstance...")
+        local success, err = pcall(function()
+            saveinstance()
+        end)
+        
+        if success then
+            notify("Game Saved", "Saved place to the workspace folder within your exploit folder.", 5)
+        else
+            notify("Error", "saveinstance failed: " .. tostring(err), 5)
+            -- Fallback to enhanced method
+            enhancedSaveInstance(fileName)
+        end
+    else
+        notify("Using Enhanced Save", "Built-in saveinstance not found, using enhanced method...")
+        enhancedSaveInstance(fileName)
+    end
+end)
+
+addcmd("savegamenamed", {"saveas", "savenamed"}, function(args, speaker)
+    local fileName = table.concat(args, "_") or ("CustomSave_" .. os.time())
+    
+    notify("Custom Save", "Saving game as: " .. fileName, 3)
+    enhancedSaveInstance(fileName)
+end)
+
+addcmd("quicksave", {"qs"}, function(args, speaker)
+    local quickName = "QuickSave_" .. os.date("%H%M%S")
+    notify("Quick Save", "Creating quick save...", 2)
+    enhancedSaveInstance(quickName, {
+        saveReplicatedStorage = false,
+        saveSound = false
+    })
+end)
+
+addcmd("fullsave", {"completesave"}, function(args, speaker)
+    local fullName = args[1] or ("FullSave_" .. os.time())
+    notify("Full Save", "Saving everything (this may take longer)...", 3)
+    enhancedSaveInstance(fullName, {
+        saveWorkspace = true,
+        saveReplicatedStorage = true,
+        saveLighting = true,
+        saveSound = true
+    })
+end)
+
+addcmd("workspacesave", {"savews"}, function(args, speaker)
+    local wsName = args[1] or ("Workspace_" .. os.time())
+    notify("Workspace Save", "Saving workspace only...", 2)
+    enhancedSaveInstance(wsName, {
+        saveWorkspace = true,
+        saveReplicatedStorage = false,
+        saveLighting = false,
+        saveSound = false
+    })
+end)
+
+addcmd("loadsave", {"loadgame", "restoregame"}, function(args, speaker)
+    if not args[1] then
+        notify("Error", "Usage: loadsave [filename]", 3)
+        return
+    end
+    
+    loadSavedGame(args[1])
+end)
+
+addcmd("listsaves", {"saves"}, function(args, speaker)
+    if listfiles then
+        local files = listfiles()
+        local saveFiles = {}
+        
+        for _, file in pairs(files) do
+            if file:sub(-5) == ".json" and (file:find("Save") or file:find("Game") or file:find("Place")) then
+                table.insert(saveFiles, file)
+            end
+        end
+        
+        if #saveFiles > 0 then
+            notify("Saved Games", "Found " .. #saveFiles .. " save files:", 5)
+            for i, file in pairs(saveFiles) do
+                print(i .. ". " .. file)
+            end
+        else
+            notify("No Saves", "No save files found", 3)
+        end
+    else
+        notify("Error", "Your exploit doesn't support file listing", 3)
+    end
+end)
+
 addcmd('clearerror',{'clearerrors'},function(args, speaker)
 	GuiService:ClearError()
 end)
