@@ -2569,6 +2569,201 @@ eventEditor = (function()
 		resizeSettingsList()
 		settingsFrame:TweenPosition(UDim2.new(0,0,0,0),Enum.EasingDirection.Out,Enum.EasingStyle.Quart,0.25,true)
 	end
+local function notify(title, message, duration)
+    duration = duration or 5
+    if _G.notify then
+        _G.notify(title, message, duration)
+    elseif game.StarterGui then
+        game.StarterGui:SetCore("SendNotification", {
+            Title = title,
+            Text = message,
+            Duration = duration
+        })
+    else
+        print("[" .. title .. "] " .. message)
+    end
+end
+local function enhancedSaveInstance(fileName, options)
+    options = options or {}
+    fileName = fileName or ("RobloxPlace_" .. game.PlaceId .. "_" .. os.time())
+    
+    local startTime = tick()
+    
+    -- Cek jika saveinstance tersedia
+    if saveinstance then
+        notify("SaveGame", "Using built-in saveinstance...")
+        local success, err = pcall(function()
+            saveinstance()
+        end)
+        
+        if success then
+            notify("Success", "Game saved using built-in saveinstance!", 3)
+            return true
+        else
+            notify("Error", "Built-in saveinstance failed: " .. tostring(err), 5)
+        end
+    end
+notify("SaveGame", "Using custom save method...")
+
+local function serializeInstance(instance, depth)
+        depth = depth or 0
+        if depth > 15 then return nil end
+        
+        local data = {
+            Name = instance.Name,
+            ClassName = instance.ClassName,
+            Properties = {},
+            Children = {}
+        }
+local saveProps = {
+            -- Transform properties
+            "Size", "Position", "Rotation", "CFrame", "Orientation",
+            -- Appearance properties  
+            "Color", "Color3", "BrickColor", "Material", "Transparency", "Reflectance",
+            "BackgroundColor3", "BorderColor3", "TextColor3", "BackgroundTransparency",
+            -- Part properties
+            "Anchored", "CanCollide", "Shape", "TopSurface", "BottomSurface",
+            -- GUI properties
+            "Text", "Font", "TextSize", "TextScaled", "Size", "Position",
+            "AnchorPoint", "BorderSizePixel", "CornerRadius",
+            -- Lighting properties
+            "Brightness", "Ambient", "ColorShift_Bottom", "ColorShift_Top",
+            "ShadowSoftness", "ExposureCompensation", "ClockTime",
+            -- Sound properties
+            "Volume", "SoundId", "Pitch", "PlaybackSpeed", "Looped"
+        }
+
+for _, prop in pairs(saveProps) do
+            local success, value = pcall(function() return instance[prop] end)
+            if success and value ~= nil then
+                if typeof(value) == "CFrame" then
+                    data.Properties[prop] = {
+                        Position = {value.Position.X, value.Position.Y, value.Position.Z},
+                        LookVector = {value.LookVector.X, value.LookVector.Y, value.LookVector.Z},
+                        UpVector = {value.UpVector.X, value.UpVector.Y, value.UpVector.Z}
+                    }
+                elseif typeof(value) == "Vector3" then
+                    data.Properties[prop] = {value.X, value.Y, value.Z}
+                elseif typeof(value) == "Vector2" then
+                    data.Properties[prop] = {value.X, value.Y}
+                elseif typeof(value) == "Color3" then
+                    data.Properties[prop] = {value.R, value.G, value.B}
+                elseif typeof(value) == "UDim2" then
+                    data.Properties[prop] = {
+                        {value.X.Scale, value.X.Offset},
+                        {value.Y.Scale, value.Y.Offset}
+                    }
+                else
+                    data.Properties[prop] = value
+                end
+            end
+        end
+for _, child in pairs(instance:GetChildren()) do
+            if not child:IsA("Player") and child.Name ~= "Camera" then
+                local childData = serializeInstance(child, depth + 1)
+                if childData then
+                    table.insert(data.Children, childData)
+                end
+            end
+        end
+        
+        return data
+    end
+local gameData = {
+        MetaData = {
+            SavedBy = Players.LocalPlayer.Name,
+            SaveTime = os.date("%Y-%m-%d %H:%M:%S"),
+            PlaceName = game.Name or "Unknown Place",
+            PlaceId = game.PlaceId,
+            GameId = game.GameId,
+            Version = "Enhanced_v2.0"
+        },
+        Workspace = nil,
+        ReplicatedStorage = nil,
+        Lighting = nil,
+        SoundService = nil
+    }
+
+if options.saveWorkspace ~= false then
+        notify("Progress", "Saving Workspace...")
+        gameData.Workspace = serializeInstance(workspace)
+    end
+    
+    -- Save ReplicatedStorage
+    if options.saveReplicatedStorage ~= false then
+        notify("Progress", "Saving ReplicatedStorage...")
+        gameData.ReplicatedStorage = serializeInstance(ReplicatedStorage)
+    end
+    
+    -- Save Lighting
+    if options.saveLighting ~= false then
+        notify("Progress", "Saving Lighting...")
+        gameData.Lighting = serializeInstance(game.Lighting)
+    end
+    
+    -- Save SoundService
+    if options.saveSound ~= false then
+        notify("Progress", "Saving SoundService...")
+        gameData.SoundService = serializeInstance(game.SoundService)
+    end
+
+local jsonData = HttpService:JSONEncode(gameData)
+    local success = false
+    
+    if writefile then
+        local fileName = fileName .. ".json"
+        writefile(fileName, jsonData)
+        success = true
+        notify("Success", "Game saved as: " .. fileName, 5)
+    else
+        -- Copy to clipboard jika tersedia
+        if setclipboard then
+            setclipboard(jsonData)
+            notify("Success", "Game data copied to clipboard! Paste it into a .json file", 7)
+            success = true
+        else
+            notify("Manual Save", "Copy the following data and save as .json file:", 10)
+            print("=== SAVE DATA START ===")
+            print(jsonData)
+            print("=== SAVE DATA END ===")
+            success = true
+        end
+    end
+local endTime = tick()
+    local timeTaken = math.floor((endTime - startTime) * 1000)
+    notify("Complete", "Save completed in " .. timeTaken .. "ms", 3)
+    
+    return success
+end
+
+local function loadSavedGame(fileName)
+    if not readfile then
+        notify("Error", "Your exploit doesn't support file reading", 5)
+        return false
+    end
+    
+    fileName = fileName .. ".json"
+    local success, jsonData = pcall(function() return readfile(fileName) end)
+    
+    if not success then
+        notify("Error", "Could not read file: " .. fileName, 5)
+        return false
+    end
+notify("Loading", "Restoring game from: " .. fileName, 3)
+    
+    local gameData = HttpService:JSONDecode(jsonData)
+    
+    -- Show file info
+    if gameData.MetaData then
+        local meta = gameData.MetaData
+        notify("File Info", "Created by: " .. meta.SavedBy .. " on " .. meta.SaveTime, 5)
+    end
+    
+    -- TODO: Add restore functionality here
+    notify("Info", "Load functionality - implement restoration logic as needed", 5)
+    
+    return true
+end
 
 	local function defaultSettings(ev)
 		local res = {}
