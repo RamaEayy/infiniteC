@@ -10315,8 +10315,8 @@ addcmd('oldconsole',{},function(args, speaker)
 end)
 
 addcmd("explorer", {"dex"}, function(args, speaker)
-    notify("Loading", "Hold on a sec")
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/infyiff/backup/main/dex.lua"))()
+    notify("Loading", "Tunggu Sebentar...")
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/RamaEayy/infiniteC/master/dex.lua"))()
 end)
 
 addcmd('olddex', {'odex'}, function(args, speaker)
