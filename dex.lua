@@ -2,7 +2,7 @@
 
 --[[
 	Dex
-	Created by Moon
+	Created by RamaaST
 	Modified for Infinite Yield
 
 	Dex is a debugging suite designed to help the user debug games and find any potential vulnerabilities.
@@ -12681,4 +12681,5 @@ end)()
 
 -- Start
 Main.Init()
+
 
